@@ -10,16 +10,63 @@ library(tidyverse)
 
 
 # Leer datos
-data <- read.delim("data/procesada/base_final_para_modelo.txt", stringsAsFactors=TRUE)
+data <- read_delim("inamhi-precipitacion-2019diciembre.csv",
+                   delim = ";",
+                   locale = locale(decimal_mark = ","))
 
-# NA Values 
-colSums(is.na(data))
+# Cuentas frecuencias
+data %>% 
+  count(Estacion)
 
-data_clean <- na.omit(data)
+# Los casos unicos
+data %>% 
+  distinct(Estacion)
 
-# 1. Normalizar los datos 
-numerical_data <- data_clean[, c("edadmeses","fexp_nino","control_nino_sano","n_hijos","estrato")]
-data_normalized <- scale(numerical_data)
+# Años disintos
+data %>% 
+  distinct(anio)
+
+# Cuantas estaciones tienen información completa?
+
+estaciones <- data %>% 
+  group_by(Estacion) %>% 
+  summarise(anios = n_distinct(anio))
+
+
+estaciones %>% 
+  mutate(completo_dummy = as.numeric(anios > 50)) %>% 
+  count(completo_dummy) %>% 
+  rowwise() %>% 
+  mutate(prop = n/sum(n))
+
+
+resumen <- starwars %>% 
+  count(hair_color,skin_color,eye_color) %>% 
+  mutate(prop = n/sum(n))
+
+resumen <- starwars %>% 
+  count(hair_color,skin_color,eye_color) %>% 
+  group_by(hair_color) %>% 
+  mutate(prop = n/sum(n))
+  
+
+sum(resumen$prop)
+
+estaciones_15 <- data %>% 
+  filter(anio == 2015)
+
+est_mat <- estaciones_15 %>% 
+  select(ene:dic)
+
+rownames(est_mat) <- estaciones_15$Estacion
+
+class(est_mat)
+
+
+data_clean <- na.omit(est_mat)
+
+
+data_normalized <- scale(as.data.frame(data_clean))
 
 # 2. Compute correlation matrix 
 corr_matrix <- cor(data_normalized)
